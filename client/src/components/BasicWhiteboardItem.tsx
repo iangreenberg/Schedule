@@ -259,6 +259,7 @@ const BasicWhiteboardItem: React.FC<WhiteboardItemProps> = ({ item, onMove, onUp
   return (
     <>
       <div
+        id={`item-${item.id}`}
         ref={itemRef}
         className={`basic-whiteboard-item ${item.type}-item ${isDragging ? 'dragging' : ''}`}
         style={{

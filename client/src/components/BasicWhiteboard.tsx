@@ -3,6 +3,8 @@ import { WhiteboardItem } from '@shared/schema';
 import BasicWhiteboardItem from './BasicWhiteboardItem';
 import './BasicWhiteboardItem.css';
 import { PlusCircle } from 'lucide-react';
+import { findClosestDay } from '@/lib/utils/findClosestDay';
+import Connector from './Connector';
 
 interface WhiteboardProps {
   zoom: number;
@@ -50,11 +52,50 @@ const BasicWhiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
           content = {};
       }
       
+      // Get closest day on timeline
+      const closestDay = new Date();
+      try {
+        // Find timeline element (in the middle of the screen)
+        const timeline = document.getElementById('timeline');
+        const timelineDays = document.querySelectorAll('.timeline-day');
+        
+        if (timeline && timelineDays.length > 0) {
+          // Convert to array to make it easier to work with
+          const days = Array.from(timelineDays);
+          
+          // We'll use horizontal distance to find the closest day
+          const timelineRect = timeline.getBoundingClientRect();
+          let closestDistance = Infinity;
+          let closestDayElement = null;
+          
+          for (const day of days) {
+            const rect = day.getBoundingClientRect();
+            const horizontalCenter = rect.left + rect.width / 2;
+            const distance = Math.abs(horizontalCenter - addMenuPosition.x);
+            
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestDayElement = day;
+            }
+          }
+          
+          // Get the date from the closest day
+          if (closestDayElement) {
+            const dateStr = closestDayElement.getAttribute('data-date');
+            if (dateStr) {
+              closestDay.setTime(new Date(dateStr).getTime());
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error finding closest day:', error);
+      }
+      
       const newItem = {
         type,
         content,
         position: addMenuPosition,
-        connectedDate: new Date().toISOString() // Send as ISO string for proper serialization
+        connectedDate: closestDay.toISOString() // Send as ISO string with connected date
       };
       
       const response = await fetch('/api/whiteboard-items', {
@@ -73,23 +114,70 @@ const BasicWhiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
     }
   };
   
-  // Update item position
+  // Update item position and attach to nearest day
   const updateItemPosition = async (id: string, x: number, y: number) => {
     try {
+      // Get the closest day on the timeline
+      const closestDay = new Date();
+      try {
+        // Find timeline element
+        const timeline = document.getElementById('timeline');
+        const timelineDays = document.querySelectorAll('.timeline-day');
+        
+        if (timeline && timelineDays.length > 0) {
+          // Convert to array to make it easier to work with
+          const days = Array.from(timelineDays);
+          
+          // Use horizontal distance to find the closest day
+          let closestDistance = Infinity;
+          let closestDayElement = null;
+          
+          for (const day of days) {
+            const rect = day.getBoundingClientRect();
+            const horizontalCenter = rect.left + rect.width / 2;
+            const distance = Math.abs(horizontalCenter - x);
+            
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestDayElement = day;
+            }
+          }
+          
+          // Get the date from the closest day
+          if (closestDayElement) {
+            const dateStr = closestDayElement.getAttribute('data-date');
+            if (dateStr) {
+              closestDay.setTime(new Date(dateStr).getTime());
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error finding closest day:', error);
+      }
+      
+      // Update the item with new position and connected date
       const updatedItems = items.map(item => 
         item.id === id 
-          ? { ...item, position: { x, y } } 
+          ? { 
+              ...item, 
+              position: { x, y },
+              connectedDate: closestDay
+            } 
           : item
       );
       
       setItems(updatedItems);
       
+      // Send the update to the server
       await fetch(`/api/whiteboard-items/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ position: { x, y } }),
+        body: JSON.stringify({ 
+          position: { x, y },
+          connectedDate: closestDay.toISOString()
+        }),
       });
     } catch (error) {
       console.error('Error updating item position:', error);
@@ -132,10 +220,30 @@ const BasicWhiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
     }
   };
   
-  // Handle canvas click to close add menu
+  // Handle canvas click to either close add menu or create a new item
   const handleCanvasClick = (e: React.MouseEvent) => {
+    // If menu is open, close it
     if (showAddMenu) {
       setShowAddMenu(false);
+      return;
+    }
+    
+    // Otherwise, create a new item at click position
+    if (canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const clickPosition = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+      
+      // Don't create items when clicking on existing items or the add button
+      if ((e.target as HTMLElement).closest('.basic-whiteboard-item') || 
+          (e.target as HTMLElement).closest('.add-item-button')) {
+        return;
+      }
+      
+      setAddMenuPosition(clickPosition);
+      setShowAddMenu(true);
     }
   };
   
@@ -187,6 +295,11 @@ const BasicWhiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
       >
         <PlusCircle size={24} />
       </button>
+      
+      {/* Render connectors first (they should be under the items) */}
+      {items.map(item => (
+        <Connector key={`connector-${item.id}`} item={item} />
+      ))}
       
       {/* Render items */}
       {items.map(item => (
