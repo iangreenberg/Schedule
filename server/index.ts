@@ -42,9 +42,23 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    
+    console.error('Server error:', err);
+    
+    // Send a structured error response
+    res.status(status).json({ 
+      message,
+      error: process.env.NODE_ENV === 'production' ? undefined : {
+        stack: err.stack,
+        name: err.name,
+        details: err.details || err.errors
+      }
+    });
+    
+    // Don't rethrow in production to prevent server crashes
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error stack:', err.stack);
+    }
   });
 
   // importantly only setup vite in development and after
