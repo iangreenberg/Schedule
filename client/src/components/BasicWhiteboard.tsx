@@ -220,11 +220,68 @@ const BasicWhiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
     }
   };
   
+  // Track if we're currently dragging to prevent menu from opening
+  const [hasDragged, setHasDragged] = useState(false);
+  
+  // Track mouse down position to detect dragging
+  const [mouseDownPos, setMouseDownPos] = useState<{x: number, y: number} | null>(null);
+  
+  // Handle mouse down on canvas
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    // Don't track when clicking on items or button
+    if ((e.target as HTMLElement).closest('.basic-whiteboard-item') || 
+        (e.target as HTMLElement).closest('.add-item-button')) {
+      return;
+    }
+    
+    if (canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      setMouseDownPos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+      setHasDragged(false);
+    }
+  };
+  
+  // Handle mouse move on canvas
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    if (!mouseDownPos) return;
+    
+    // Check if mouse has moved more than a small threshold to count as dragging
+    const moveThreshold = 5;
+    if (canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const currentPos = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+      
+      const distance = Math.sqrt(
+        Math.pow(currentPos.x - mouseDownPos.x, 2) + 
+        Math.pow(currentPos.y - mouseDownPos.y, 2)
+      );
+      
+      if (distance > moveThreshold) {
+        setHasDragged(true);
+      }
+    }
+  };
+  
   // Handle canvas click to either close add menu or create a new item
   const handleCanvasClick = (e: React.MouseEvent) => {
+    // Reset mouse down position
+    setMouseDownPos(null);
+    
     // If menu is open, close it
     if (showAddMenu) {
       setShowAddMenu(false);
+      return;
+    }
+    
+    // Don't open menu if we've been dragging
+    if (hasDragged) {
+      setHasDragged(false);
       return;
     }
     
@@ -260,6 +317,8 @@ const BasicWhiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E")`,
       }}
       onClick={handleCanvasClick}
+      onMouseDown={handleCanvasMouseDown}
+      onMouseMove={handleCanvasMouseMove}
       onContextMenu={handleContextMenu}
     >
       {/* Add button */}

@@ -31,9 +31,9 @@ const Connector: React.FC<ConnectorProps> = ({ item }) => {
       const itemRect = itemElement.getBoundingClientRect();
       const dateRect = dateElement.getBoundingClientRect();
       
-      // Calculate center points
-      const itemCenterX = itemRect.left + itemRect.width / 2;
-      const itemCenterY = itemRect.top + itemRect.height / 2;
+      // Use top-middle of the item for connection point
+      const itemTopMiddleX = itemRect.left + itemRect.width / 2;
+      const itemTopMiddleY = itemRect.top;
       const dateCenterX = dateRect.left + dateRect.width / 2;
       const dateCenterY = dateRect.top;
       
@@ -42,20 +42,20 @@ const Connector: React.FC<ConnectorProps> = ({ item }) => {
       const scrollY = window.scrollY;
       
       // Calculate control points for a quadratic bezier curve
-      const isAboveTimeline = itemCenterY < dateCenterY;
+      const isAboveTimeline = itemTopMiddleY < dateCenterY;
       
       // Draw curved connector path with SVG
-      let svgPath = `M ${itemCenterX + scrollX} ${itemCenterY + scrollY} `;
+      let svgPath = `M ${itemTopMiddleX + scrollX} ${itemTopMiddleY + scrollY} `;
       
       if (isAboveTimeline) {
         // Item is above the timeline, curve down
-        const controlX = (itemCenterX + dateCenterX) / 2;
-        const controlY = dateCenterY - Math.abs(dateCenterY - itemCenterY) * 0.2;
+        const controlX = (itemTopMiddleX + dateCenterX) / 2;
+        const controlY = dateCenterY - Math.abs(dateCenterY - itemTopMiddleY) * 0.2;
         svgPath += `Q ${controlX + scrollX} ${controlY + scrollY} ${dateCenterX + scrollX} ${dateCenterY + scrollY}`;
       } else {
         // Item is below the timeline, curve up
-        const controlX = (itemCenterX + dateCenterX) / 2;
-        const controlY = dateCenterY + Math.abs(dateCenterY - itemCenterY) * 0.2;
+        const controlX = (itemTopMiddleX + dateCenterX) / 2;
+        const controlY = dateCenterY + Math.abs(dateCenterY - itemTopMiddleY) * 0.2;
         svgPath += `Q ${controlX + scrollX} ${controlY + scrollY} ${dateCenterX + scrollX} ${dateCenterY + scrollY}`;
       }
       
