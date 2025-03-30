@@ -181,6 +181,19 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
     updateConnectors();
   }, [updateConnectors]);
   
+  // Handle content change in objects
+  const handleContentChange = useCallback((id: string, content: any) => {
+    setObjects(prev => 
+      prev.map(obj => 
+        obj.id === id 
+          ? { ...obj, content } 
+          : obj
+      )
+    );
+    // Wait for content to be updated, then recalculate connectors
+    setTimeout(updateConnectors, 50);
+  }, [updateConnectors]);
+  
   // Close menu if clicking outside
   const handleCloseMenu = useCallback(() => {
     setMenuPosition(null);
@@ -214,6 +227,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
               object={obj}
               onDragMove={(x, y) => handleDragMove(obj.id, x, y)}
               onDragEnd={(x, y) => handleDragEnd(obj.id, x, y)}
+              onContentChange={handleContentChange}
             />
           ))}
         </Layer>
