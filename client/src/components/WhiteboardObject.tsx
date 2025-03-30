@@ -23,32 +23,7 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
   const [width, setWidth] = useState(150);
   const [height, setHeight] = useState(60);
   const textRef = useRef<Konva.Text>(null);
-  const stageRef = useRef<Konva.Stage | null>(null);
-  
-  // Get the stage reference for global events
-  useEffect(() => {
-    // Find Konva canvas
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-      // Find parent container
-      const containerElement = canvas.parentElement;
-      if (containerElement) {
-        // Look for the stage via data attribute (common in Konva)
-        const stage = document.querySelector('.konvajs-content');
-        if (stage) {
-          // Set stage dimensions based on container
-          setTimeout(() => {
-            // We use a timeout to ensure the component is fully mounted
-            // Access the stage via Konva global stages (this is a workaround for TypeScript)
-            const konvaStages = (Konva as any).stages || [];
-            if (konvaStages.length > 0) {
-              stageRef.current = konvaStages[0];
-            }
-          }, 100);
-        }
-      }
-    }
-  }, []);
+  const group = useRef<Konva.Group>(null);
   
   // Initialize edit fields when going into edit mode
   useEffect(() => {
@@ -367,6 +342,7 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
   return (
     <>
       <Group
+        ref={group}
         x={object.position.x}
         y={object.position.y}
         draggable
@@ -447,101 +423,97 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
         />
       </Group>
       
-      {/* Editing overlay - using HTML outside of Konva */}
-      {isEditing && stageRef.current && (
-        <div 
-          style={{
-            position: 'absolute',
-            zIndex: 1000,
-            top: object.position.y + stageRef.current.container().offsetTop,
-            left: object.position.x + stageRef.current.container().offsetLeft,
-            width: width,
-            pointerEvents: 'auto',
-          }}
-          className="editing-overlay"
-        >
-          <textarea
-            autoFocus
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            style={{
-              width: width - 20,
-              marginLeft: 10,
-              marginTop: 10,
-              minHeight: editingField === 'caption' ? height - 60 : 50,
-              padding: 8,
-              backgroundColor: 'white',
-              border: `2px solid ${color}`,
-              borderRadius: 4,
-              fontFamily: editingField === 'time' ? 'Quicksand' : 'Caveat',
-              fontSize: editingField === 'time' ? 14 : 18,
-              resize: 'none',
-              outline: 'none',
-            }}
-            placeholder={
-              editingField === 'text' ? 'Enter text...' :
-              editingField === 'title' ? 'Enter event title...' :
-              editingField === 'time' ? 'Enter time/location...' : 
-              'Enter caption...'
-            }
-          />
-          
-          {/* Second field for subtext if needed */}
-          {(object.type === 'text' || object.type === 'event') && (
+      {/* Editing interface */}
+      {isEditing && (
+        <div className="editor-container">
+          <div 
+            className="editor-backdrop"
+            onClick={() => setIsEditing(false)}
+          ></div>
+          <div className="editing-overlay">
             <textarea
-              value={editSubtext}
-              onChange={(e) => setEditSubtext(e.target.value)}
+              autoFocus
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
               style={{
-                width: width - 20,
+                width: 'calc(100% - 20px)',
                 marginLeft: 10,
-                marginTop: 5,
-                height: 40,
+                marginTop: 10,
+                minHeight: editingField === 'caption' ? height - 60 : 50,
                 padding: 8,
                 backgroundColor: 'white',
                 border: `2px solid ${color}`,
                 borderRadius: 4,
-                fontFamily: 'Quicksand',
-                fontSize: 12,
+                fontFamily: editingField === 'time' ? 'Quicksand' : 'Caveat',
+                fontSize: editingField === 'time' ? 14 : 18,
                 resize: 'none',
                 outline: 'none',
               }}
               placeholder={
-                object.type === 'text' ? 'Enter subtext...' : 'Enter time/location...'
+                editingField === 'text' ? 'Enter text...' :
+                editingField === 'title' ? 'Enter event title...' :
+                editingField === 'time' ? 'Enter time/location...' : 
+                'Enter caption...'
               }
             />
-          )}
-          
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'flex-end',
-            margin: '5px 10px'
-          }}>
-            <button
-              onClick={() => setIsEditing(false)}
-              style={{
-                marginRight: 8,
-                padding: '5px 10px',
-                borderRadius: 4,
-                border: 'none',
-                backgroundColor: '#eee',
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={completeEdit}
-              style={{
-                padding: '5px 10px',
-                borderRadius: 4,
-                border: 'none',
-                backgroundColor: color,
-                color: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              Save
-            </button>
+            
+            {/* Second field for subtext if needed */}
+            {(object.type === 'text' || object.type === 'event') && (
+              <textarea
+                value={editSubtext}
+                onChange={(e) => setEditSubtext(e.target.value)}
+                style={{
+                  width: 'calc(100% - 20px)',
+                  marginLeft: 10,
+                  marginTop: 5,
+                  height: 40,
+                  padding: 8,
+                  backgroundColor: 'white',
+                  border: `2px solid ${color}`,
+                  borderRadius: 4,
+                  fontFamily: 'Quicksand',
+                  fontSize: 12,
+                  resize: 'none',
+                  outline: 'none',
+                }}
+                placeholder={
+                  object.type === 'text' ? 'Enter subtext...' : 'Enter time/location...'
+                }
+              />
+            )}
+            
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end',
+              margin: '5px 10px'
+            }}>
+              <button
+                onClick={() => setIsEditing(false)}
+                style={{
+                  marginRight: 8,
+                  padding: '5px 10px',
+                  borderRadius: 4,
+                  border: 'none',
+                  backgroundColor: '#eee',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={completeEdit}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: 4,
+                  border: 'none',
+                  backgroundColor: color,
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Save
+              </button>
+            </div>
           </div>
         </div>
       )}
