@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Group, Rect, Text, Line } from 'react-konva';
-import { WhiteboardItem } from '@shared/schema';
+import { Group, Rect, Text } from 'react-konva';
 import Konva from 'konva';
+import { WhiteboardItem } from '@shared/schema';
 
 interface WhiteboardObjectProps {
   object: WhiteboardItem;
@@ -10,22 +10,50 @@ interface WhiteboardObjectProps {
   onContentChange?: (id: string, content: any) => void;
 }
 
-const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
-  object,
-  onDragMove,
+const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({ 
+  object, 
+  onDragMove, 
   onDragEnd,
   onContentChange
 }) => {
+  // State for the object dimensions
+  const [width, setWidth] = useState(180);
+  const [height, setHeight] = useState(80);
+  
+  // State for editing functionality
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [editSubtext, setEditSubtext] = useState('');
-  const [editingField, setEditingField] = useState<'text' | 'subtext' | 'title' | 'time' | 'caption'>('text');
-  const [width, setWidth] = useState(150);
-  const [height, setHeight] = useState(60);
-  const textRef = useRef<Konva.Text>(null);
-  const group = useRef<Konva.Group>(null);
   
-  // Initialize edit fields when going into edit mode
+  // References
+  const groupRef = useRef<Konva.Group>(null);
+  
+  // Set initial dimensions based on object type
+  useEffect(() => {
+    switch (object.type) {
+      case 'text':
+        setWidth(180);
+        setHeight(80);
+        break;
+      case 'task':
+        setWidth(200);
+        setHeight(60);
+        break;
+      case 'event':
+        setWidth(180);
+        setHeight(90);
+        break;
+      case 'image':
+        setWidth(160);
+        setHeight(120);
+        break;
+      default:
+        setWidth(180);
+        setHeight(80);
+    }
+  }, [object.type]);
+  
+  // Set initial edit values when editing starts
   useEffect(() => {
     if (isEditing) {
       switch (object.type) {
@@ -45,55 +73,28 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
           break;
       }
     }
-  }, [isEditing, object.type, object.content]);
+  }, [isEditing, object]);
   
-  useEffect(() => {
-    // Calculate dimensions based on content
-    if (textRef.current) {
-      const textWidth = textRef.current.width();
-      const textHeight = textRef.current.height();
-      setWidth(Math.max(150, textWidth + 40));
-      setHeight(Math.max(60, textHeight + 30));
+  // Simple drag handlers
+  const handleDragMove = () => {
+    if (groupRef.current) {
+      onDragMove(groupRef.current.x(), groupRef.current.y());
     }
-  }, [object.content]);
+  };
   
-  // Handle double click to edit - separating from Konva completely
-  const startEditing = () => {
-    console.log('Start editing object with ID:', object.id);
-    
-    if (object.type === 'text') {
-      setEditingField('text');
-    } else if (object.type === 'task') {
-      setEditingField('text');
-    } else if (object.type === 'event') {
-      setEditingField('title');
-    } else if (object.type === 'image') {
-      setEditingField('caption');
+  const handleDragEnd = () => {
+    if (groupRef.current) {
+      onDragEnd(groupRef.current.x(), groupRef.current.y());
     }
-    
+  };
+  
+  // Edit dialog functions
+  const openEditDialog = () => {
     setIsEditing(true);
   };
   
-  // Handle double click to edit - safe wrapper
-  const handleDoubleClick = (e: Konva.KonvaEventObject<MouseEvent> | Konva.KonvaEventObject<TouchEvent>) => {
-    // Stop event propagation to prevent conflicts
-    e.cancelBubble = true;
-    
-    try {
-      // Call our safe editing function
-      startEditing();
-    } catch (error) {
-      console.error('Error in handleDoubleClick:', error);
-    }
-  };
-  
-  // Handle completing edit
-  const completeEdit = () => {
-    console.log('Completing edit for object ID:', object.id);
-    console.log('onContentChange function exists:', Boolean(onContentChange));
-    
+  const saveEdit = () => {
     if (!onContentChange) {
-      console.error('onContentChange is not defined!');
       setIsEditing(false);
       return;
     }
@@ -130,103 +131,56 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
         newContent = object.content;
     }
     
-    console.log('New content object:', newContent);
-    try {
-      onContentChange(object.id, newContent);
-      console.log('Content change function called successfully');
-    } catch (error) {
-      console.error('Error calling onContentChange:', error);
-    }
+    onContentChange(object.id, newContent);
     setIsEditing(false);
   };
   
-  // Handle keyboard events for editing
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isEditing) return;
-      
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        completeEdit();
-      } else if (e.key === 'Escape') {
-        setIsEditing(false);
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isEditing, editText, editSubtext]);
-  
-  const handleDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
-    if (!e.target || !group.current) return;
-    // Use the group ref's position which is more reliable
-    onDragMove(group.current.x(), group.current.y());
-  };
-  
-  const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
-    if (!e.target || !group.current) return;
-    // Use the group ref's position which is more reliable
-    onDragEnd(group.current.x(), group.current.y());
-  };
-  
-  // Get color based on object type - Japanese-inspired color palette
-  const getObjectColor = () => {
+  // Theme colors
+  const getColor = () => {
     switch(object.type) {
-      case 'text':
-        return '#A02C2C'; // Akane (Deep Red)
-      case 'task':
-        return '#DC6238'; // Persimmon 
-      case 'event':
-        return '#2A4B7C'; // Kon (Indigo Blue)
-      case 'image':
-        return '#5D3A1A'; // Kogecha (Dark Brown)
-      default:
-        return '#A02C2C'; // Default to Akane
+      case 'text': return '#A02C2C'; // Akane (Deep Red)
+      case 'task': return '#DC6238'; // Persimmon 
+      case 'event': return '#2A4B7C'; // Kon (Indigo Blue)
+      case 'image': return '#5D3A1A'; // Kogecha (Dark Brown)
+      default: return '#A02C2C';
     }
   };
   
-  // Get background color with lighter tint
-  const getBackgroundColor = () => {
+  const getBgColor = () => {
     switch(object.type) {
-      case 'text':
-        return '#FFF8F8'; // Light red tint
-      case 'task':
-        return '#FFF9F1'; // Light orange tint
-      case 'event':
-        return '#F5F8FD'; // Light blue tint
-      case 'image':
-        return '#FAF7F5'; // Light brown tint
-      default:
-        return '#FFF8F8';
+      case 'text': return '#FFF8F8'; // Light red tint
+      case 'task': return '#FFF9F1'; // Light orange tint
+      case 'event': return '#F5F8FD'; // Light blue tint
+      case 'image': return '#FAF7F5'; // Light brown tint
+      default: return '#FFF8F8';
     }
   };
   
-  const getObjectContent = () => {
-    const color = getObjectColor();
-    
+  const color = getColor();
+  const bgColor = getBgColor();
+  
+  // Render content based on object type
+  const getContent = () => {
     switch (object.type) {
       case 'text':
         return (
           <>
             <Text
-              ref={textRef}
-              text={object.content.text}
-              fontSize={20}
+              text={object.content.text || ''}
+              fontSize={18}
               fontFamily="Caveat"
-              fill={color} 
-              width={width - 40}
+              fill={color}
+              width={width - 20}
               padding={10}
               align="center"
             />
             {object.content.subtext && (
               <Text
                 text={object.content.subtext}
-                fontSize={13}
+                fontSize={12}
                 fontFamily="Quicksand"
                 fill="#666666"
-                width={width - 40}
+                width={width - 20}
                 padding={10}
                 y={30}
                 align="center"
@@ -234,11 +188,12 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
             )}
           </>
         );
+        
       case 'task':
         return (
           <>
             <Rect
-              x={10}
+              x={15}
               y={15}
               width={16}
               height={16}
@@ -248,22 +203,22 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
               cornerRadius={3}
             />
             <Text
-              ref={textRef}
-              text={object.content.text}
-              fontSize={18}
+              text={object.content.text || ''}
+              fontSize={16}
               fontFamily="Caveat"
               fill={color}
               width={width - 60}
               padding={10}
-              x={32}
+              x={35}
+              y={5}
               align="left"
             />
           </>
         );
+        
       case 'event':
         return (
           <>
-            {/* Event icon circle */}
             <Rect
               x={10}
               y={10}
@@ -274,28 +229,28 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
               cornerRadius={4}
             />
             <Text
-              ref={textRef}
-              text={object.content.title}
-              fontSize={20}
+              text={object.content.title || ''}
+              fontSize={18}
               fontFamily="Caveat"
-              fill={color} 
-              width={width - 40}
+              fill={color}
+              width={width - 20}
               padding={10}
               y={15}
               align="center"
             />
             <Text
-              text={object.content.time || ""}
+              text={object.content.time || ''}
               fontSize={12}
               fontFamily="Quicksand"
               fill="#666666"
-              width={width - 40}
+              width={width - 20}
               padding={10}
-              y={40}
+              y={45}
               align="center"
             />
           </>
         );
+        
       case 'image':
         return (
           <>
@@ -321,12 +276,11 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
             />
             {object.content.caption && (
               <Text
-                ref={textRef}
                 text={object.content.caption}
                 fontSize={12}
                 fontFamily="Quicksand"
                 fill="#666666"
-                width={width - 40}
+                width={width - 20}
                 padding={10}
                 y={height - 30}
                 align="center"
@@ -334,48 +288,16 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
             )}
           </>
         );
+        
       default:
         return null;
     }
   };
   
-  // Create Japanese-inspired brushstroke for border
-  const color = getObjectColor();
-  const bgColor = getBackgroundColor();
-  
-  // Function to create brush strokes with random variations
-  const createBrushStroke = (startX: number, startY: number, endX: number, endY: number, width: number) => {
-    const points: number[] = [];
-    const segments = 8;
-    const segmentLength = 1 / segments;
-    
-    for (let i = 0; i <= segments; i++) {
-      const t = i * segmentLength;
-      const x = startX + (endX - startX) * t;
-      const y = startY + (endY - startY) * t;
-      
-      // Add random variation for artistic brush stroke effect
-      const variation = (Math.random() * 2 - 1) * (width / 10);
-      
-      // Perpendicular direction
-      const perpX = -(endY - startY);
-      const perpY = endX - startX;
-      
-      // Normalize
-      const length = Math.sqrt(perpX * perpX + perpY * perpY);
-      const normPerpX = perpX / length;
-      const normPerpY = perpY / length;
-      
-      points.push(x + normPerpX * variation, y + normPerpY * variation);
-    }
-    
-    return points;
-  };
-  
   return (
     <>
       <Group
-        ref={group}
+        ref={groupRef}
         x={object.position.x}
         y={object.position.y}
         draggable
@@ -384,101 +306,48 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
       >
         {/* Shadow */}
         <Rect
-          x={4}
-          y={4}
+          x={3}
+          y={3}
           width={width}
           height={height}
           fill="rgba(0,0,0,0.08)"
-          cornerRadius={6}
+          cornerRadius={5}
         />
         
-        {/* Brushstroke border elements - bottom */}
-        <Line
-          points={createBrushStroke(-2, height + 2, width + 2, height + 2, 8)}
-          stroke={color}
-          strokeWidth={4}
-          lineCap="round"
-          lineJoin="round"
-          opacity={0.8}
-        />
-        
-        {/* Background with texture */}
+        {/* Background */}
         <Rect
           width={width}
           height={height}
           fill={bgColor}
-          cornerRadius={4}
-          perfectDrawEnabled={false}
+          stroke={color}
+          strokeWidth={2}
+          cornerRadius={5}
         />
         
-        {/* Brushstroke border elements - top */}
-        <Line
-          points={createBrushStroke(-2, -2, width + 2, -2, 8)}
-          stroke={color}
-          strokeWidth={4}
-          lineCap="round"
-          lineJoin="round"
-          opacity={0.8}
-        />
-        
-        {/* Brushstroke border elements - left */}
-        <Line
-          points={createBrushStroke(-2, -2, -2, height + 2, 8)}
-          stroke={color}
-          strokeWidth={4}
-          lineCap="round"
-          lineJoin="round"
-          opacity={0.8}
-        />
-        
-        {/* Brushstroke border elements - right */}
-        <Line
-          points={createBrushStroke(width + 2, -2, width + 2, height + 2, 8)}
-          stroke={color}
-          strokeWidth={4}
-          lineCap="round"
-          lineJoin="round"
-          opacity={0.8}
+        {/* Top border accent */}
+        <Rect
+          width={width}
+          height={5}
+          fill={color}
+          opacity={0.7}
+          cornerRadius={[5, 5, 0, 0]}
         />
         
         {/* Content */}
-        {getObjectContent()}
+        {getContent()}
         
-        {/* Hover indicator - clickable */}
+        {/* Clickable overlay */}
         <Rect
           width={width}
           height={height}
           opacity={0}
-          onClick={(e) => {
-            // On mobile, a tap will trigger this
-            if (e.evt.type === 'touchend') {
-              try {
-                startEditing();
-              } catch (error) {
-                console.error('Error handling touch tap:', error);
-              }
-            }
-          }}
-          onDblClick={(e) => {
-            try {
-              e.cancelBubble = true;
-              startEditing();
-            } catch (error) {
-              console.error('Error handling double-click:', error);
-            }
-          }}
-          onTap={() => {
-            try {
-              startEditing();
-            } catch (error) {
-              console.error('Error handling tap:', error);
-            }
-          }}
-          perfectDrawEnabled={false}
+          onClick={openEditDialog}
+          onTap={openEditDialog}
+          onDblClick={openEditDialog}
         />
       </Group>
       
-      {/* Editing interface */}
+      {/* Edit Dialog */}
       {isEditing && (
         <div className="editor-container">
           <div 
@@ -494,20 +363,20 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
                 width: 'calc(100% - 20px)',
                 marginLeft: 10,
                 marginTop: 10,
-                minHeight: editingField === 'caption' ? height - 60 : 50,
+                minHeight: 50,
                 padding: 8,
                 backgroundColor: 'white',
                 border: `2px solid ${color}`,
                 borderRadius: 4,
-                fontFamily: editingField === 'time' ? 'Quicksand' : 'Caveat',
-                fontSize: editingField === 'time' ? 14 : 18,
+                fontFamily: object.type === 'task' ? 'Quicksand' : 'Caveat',
+                fontSize: 16,
                 resize: 'none',
                 outline: 'none',
               }}
               placeholder={
-                editingField === 'text' ? 'Enter text...' :
-                editingField === 'title' ? 'Enter event title...' :
-                editingField === 'time' ? 'Enter time/location...' : 
+                object.type === 'text' ? 'Enter text...' :
+                object.type === 'task' ? 'Enter task...' :
+                object.type === 'event' ? 'Enter event title...' : 
                 'Enter caption...'
               }
             />
@@ -540,13 +409,13 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
             <div style={{ 
               display: 'flex', 
               justifyContent: 'flex-end',
-              margin: '5px 10px'
+              margin: '10px 10px'
             }}>
               <button
                 onClick={() => setIsEditing(false)}
                 style={{
                   marginRight: 8,
-                  padding: '5px 10px',
+                  padding: '6px 12px',
                   borderRadius: 4,
                   border: 'none',
                   backgroundColor: '#eee',
@@ -556,9 +425,9 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
                 Cancel
               </button>
               <button
-                onClick={completeEdit}
+                onClick={saveEdit}
                 style={{
-                  padding: '5px 10px',
+                  padding: '6px 12px',
                   borderRadius: 4,
                   border: 'none',
                   backgroundColor: color,
