@@ -1,0 +1,54 @@
+Ian, here’s the ultimate prompt to create your “Ian’s Schedule” app on Replit. You can use this detailed specification as a starting point for your project:
+
+⸻
+
+Ultimate Prompt for “Ian’s Schedule”
+
+Project Title: Ian’s Schedule
+
+Overview:
+Develop an interactive scheduling application featuring an infinitely scrolling horizontal timeline. The timeline displays dates and days of the week and serves as the backbone for an artistic, hand-painted whiteboard interface. Users can click anywhere on the whiteboard to bring up a pop-up menu offering different elements (e.g., text box, image, shape). Once added, each object automatically connects to the nearest day on the timeline with a dynamic line that adjusts as the object moves.
+
+Core Features:
+	1.	Infinitely Scrolling Horizontal Timeline
+	•	Display: Show dates and days of the week clearly along a horizontally scrolling timeline.
+	•	Interaction: Enable smooth panning and infinite scrolling for a seamless user experience.
+	2.	Interactive Whiteboard Canvas
+	•	Click-to-Add: Allow users to click anywhere on the canvas to open a pop-up menu.
+	•	Menu Options: Provide choices such as text boxes, images, and shapes.
+	•	Placement: Place the selected object at the click location.
+	3.	Dynamic Object Connection
+	•	Auto-Connect: Automatically draw a line connecting the added object to the closest day marker on the timeline.
+	•	Reactivity: As objects are dragged or repositioned, update the connecting line in real time to maintain the closest connection.
+	4.	Visual & Artistic Design
+	•	Style: Employ a hand-painted, artistic aesthetic using custom CSS styles, brush stroke effects, and a unique font.
+	•	Whiteboard Title: Prominently display “Ian’s Schedule” at the top of the board.
+	5.	Coding Best Practices
+	•	Modularity: Structure your code into clear, modular components (e.g., separate modules for timeline management, canvas drawing, and UI controls).
+	•	Documentation: Include thorough comments, a well-organized README, and adhere to clean coding standards.
+	•	Modern Standards: Utilize modern JavaScript (ES6+), HTML5, and CSS3.
+	6.	Replit Compatibility
+	•	Deployment: Ensure the project is set up for smooth deployment on Replit.
+	•	Dependencies: Use libraries that are supported on Replit, such as the native Canvas API or libraries like p5.js or Konva.js for drawing and animations.
+
+Implementation Guidelines:
+	•	HTML/CSS:
+	•	Create a responsive layout with a dedicated header for the title “Ian’s Schedule.”
+	•	Design the timeline and whiteboard with a custom, hand-painted look using creative CSS techniques.
+	•	JavaScript:
+	•	Use ES6 classes or modules to encapsulate functionality (e.g., Timeline, Whiteboard, Menu, Connector).
+	•	Implement smooth event handling for clicks and drag events to add and reposition objects.
+	•	Optimize performance for the infinitely scrolling timeline, ensuring smooth panning and rendering.
+	•	Canvas & Drawing:
+	•	Leverage the HTML5 Canvas API or a suitable library for rendering the timeline, drawing lines, and managing object placements.
+	•	Ensure the connecting lines are recalculated dynamically as objects move to always attach to the nearest day marker.
+	•	User Interface:
+	•	Implement an intuitive pop-up menu that appears on canvas clicks, allowing users to select the type of object to add.
+	•	Ensure that the UI remains clean and uncluttered, enhancing the overall artistic experience.
+	•	Documentation & Testing:
+	•	Include a comprehensive README with setup instructions, feature descriptions, and guidelines for future improvements.
+	•	Write tests (unit and integration) where applicable to ensure robust functionality and ease of maintenance.
+
+⸻
+
+Use this prompt as a blueprint to build a beautiful, functional, and maintainable scheduling app on Replit. Happy coding, Ian!
