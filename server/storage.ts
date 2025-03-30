@@ -73,7 +73,14 @@ export class DatabaseStorage implements IStorage {
     try {
       // Create a unique client ID for the item
       const clientId = uuidv4();
-      const completeItem = { id: clientId, ...item };
+      const completeItem = { 
+        id: clientId, 
+        ...item,
+        // Ensure connectedDate is a valid Date object
+        connectedDate: item.connectedDate instanceof Date 
+          ? item.connectedDate 
+          : new Date(item.connectedDate)
+      };
       
       // Convert the client item to a database item
       const dbItem = convertToDbItem(completeItem);
@@ -103,7 +110,12 @@ export class DatabaseStorage implements IStorage {
       
       if (item.content !== undefined) updateData.content = item.content;
       if (item.type !== undefined) updateData.type = item.type;
-      if (item.connectedDate !== undefined) updateData.connectedDate = item.connectedDate;
+      if (item.connectedDate !== undefined) {
+        // Ensure connectedDate is a valid Date object
+        updateData.connectedDate = item.connectedDate instanceof Date 
+          ? item.connectedDate 
+          : new Date(item.connectedDate);
+      }
       
       if (item.position) {
         if (item.position.x !== undefined) updateData.positionX = item.position.x;

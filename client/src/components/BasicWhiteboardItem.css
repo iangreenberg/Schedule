@@ -1,130 +1,173 @@
+/* Basic whiteboard item styling */
 .basic-whiteboard-item {
-  position: absolute;
-  border-radius: 5px;
-  border: 2px solid;
-  box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  padding-bottom: 10px;
-  user-select: none;
-  transition: box-shadow 0.15s ease, transform 0.1s ease;
+  border: 1px solid;
+  transition: box-shadow 0.2s ease-in-out, transform 0.1s ease-in-out;
+  text-align: left;
+  font-family: 'Caveat', cursive;
 }
 
 .basic-whiteboard-item:hover {
-  box-shadow: 3px 5px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
 }
 
 .basic-whiteboard-item.dragging {
-  box-shadow: 5px 8px 15px rgba(0, 0, 0, 0.2);
-  opacity: 0.85;
-  transform: scale(1.02);
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
+/* Item accent bar */
 .item-accent-bar {
-  height: 5px;
+  height: 6px;
   width: 100%;
-  opacity: 0.8;
 }
 
+/* Content styling */
 .whiteboard-item-content {
-  padding: 8px 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  min-height: 50px;
+  min-height: 60px;
 }
 
 .whiteboard-item-text {
-  font-family: 'Caveat', cursive;
   font-size: 18px;
-  margin-bottom: 4px;
-  word-break: break-word;
+  margin-bottom: 6px;
+  line-height: 1.3;
 }
 
 .whiteboard-item-subtext {
+  font-size: 14px;
+  opacity: 0.8;
   font-family: 'Quicksand', sans-serif;
-  font-size: 12px;
-  color: #666;
-  word-break: break-word;
 }
 
-/* Task specific styles */
-.whiteboard-item-content.task {
+/* Item type specific styling */
+.text-item .whiteboard-item-text {
+  color: #A02C2C;
+}
+
+.task-item .task-text {
+  margin-left: 8px;
+  color: #DC6238;
+}
+
+.event-item .event-header {
+  height: 6px;
+  width: 30%;
+  background-color: #2A4B7C;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+
+.image-item .image-placeholder {
+  height: 80px;
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  padding-top: 12px;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+  color: #5D3A1A;
+  margin-bottom: 8px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
 }
 
+/* Task checkbox */
 .task-checkbox {
   width: 18px;
   height: 18px;
-  border: 1.5px solid;
-  border-radius: 3px;
-  margin-right: 8px;
-  cursor: pointer;
+  border: 2px solid #DC6238;
+  border-radius: 4px;
+  display: inline-block;
   position: relative;
+  cursor: pointer;
 }
 
 .task-checkbox.completed::after {
   content: '';
   position: absolute;
-  left: 3px;
-  top: 1px;
-  width: 9px;
-  height: 9px;
-  border-bottom: 2px solid white;
-  border-right: 2px solid white;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid #DC6238;
+  border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
 
-.task-text {
-  margin-top: -2px;
-  flex: 1;
-}
-
-/* Event specific styles */
-.event-header {
-  height: 8px;
-  margin: 0 -12px 8px -12px;
-}
-
-/* Image specific styles */
-.image-placeholder {
-  height: 80px;
+.task-item .whiteboard-item-content.task {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Quicksand', sans-serif;
-  font-size: 14px;
-  color: #666;
-  border: 1px dashed;
-  border-radius: 4px;
-  margin-bottom: 8px;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
-/* Action buttons */
+/* Item actions */
 .item-actions {
+  padding: 0 12px 12px;
   display: flex;
   justify-content: flex-end;
-  padding: 5px 12px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.basic-whiteboard-item:hover .item-actions {
-  opacity: 1;
 }
 
 .edit-button {
-  border: none;
-  color: white;
-  padding: 3px 8px;
-  border-radius: 3px;
   font-size: 12px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  color: white;
   cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s;
   font-family: 'Quicksand', sans-serif;
-  transition: all 0.15s ease;
 }
 
 .edit-button:hover {
-  transform: translateY(-1px);
+  opacity: 1;
+}
+
+/* Edit overlay */
+.editor-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.editor-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.editing-overlay {
+  position: relative;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  width: 300px;
+  padding: 0 0 10px;
+  overflow: hidden;
+}
+
+/* Add item menu */
+.add-item-menu {
+  z-index: 1000;
+}
+
+.add-item-option {
+  transition: transform 0.1s;
+}
+
+.add-item-option:hover {
+  transform: translateX(5px);
 }

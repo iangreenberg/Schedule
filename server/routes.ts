@@ -42,6 +42,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/whiteboard-items', async (req, res) => {
     try {
+      console.log('Creating item with data:', req.body);
+      
       // Create a new item without an ID, our storage will generate one
       const itemData = req.body as Omit<WhiteboardItem, "id">;
       
