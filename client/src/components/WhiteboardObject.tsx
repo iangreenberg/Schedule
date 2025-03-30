@@ -57,12 +57,9 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
     }
   }, [object.content]);
   
-  // Handle double click to edit
-  const handleDoubleClick = (e: Konva.KonvaEventObject<MouseEvent> | Konva.KonvaEventObject<TouchEvent>) => {
-    // Stop event propagation to prevent conflicts
-    e.cancelBubble = true;
-    
-    console.log('Double-click or tap detected on object:', object.id);
+  // Handle double click to edit - separating from Konva completely
+  const startEditing = () => {
+    console.log('Start editing object with ID:', object.id);
     
     if (object.type === 'text') {
       setEditingField('text');
@@ -75,6 +72,19 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
     }
     
     setIsEditing(true);
+  };
+  
+  // Handle double click to edit - safe wrapper
+  const handleDoubleClick = (e: Konva.KonvaEventObject<MouseEvent> | Konva.KonvaEventObject<TouchEvent>) => {
+    // Stop event propagation to prevent conflicts
+    e.cancelBubble = true;
+    
+    try {
+      // Call our safe editing function
+      startEditing();
+    } catch (error) {
+      console.error('Error in handleDoubleClick:', error);
+    }
   };
   
   // Handle completing edit
@@ -150,11 +160,15 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
   }, [isEditing, editText, editSubtext]);
   
   const handleDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
-    onDragMove(e.target.x(), e.target.y());
+    if (!e.target || !group.current) return;
+    // Use the group ref's position which is more reliable
+    onDragMove(group.current.x(), group.current.y());
   };
   
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
-    onDragEnd(e.target.x(), e.target.y());
+    if (!e.target || !group.current) return;
+    // Use the group ref's position which is more reliable
+    onDragEnd(group.current.x(), group.current.y());
   };
   
   // Get color based on object type - Japanese-inspired color palette
@@ -367,7 +381,6 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
         draggable
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
-        onDblClick={handleDoubleClick}
       >
         {/* Shadow */}
         <Rect
@@ -439,11 +452,28 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
           onClick={(e) => {
             // On mobile, a tap will trigger this
             if (e.evt.type === 'touchend') {
-              handleDoubleClick(e as any);
+              try {
+                startEditing();
+              } catch (error) {
+                console.error('Error handling touch tap:', error);
+              }
             }
           }}
-          onDblClick={handleDoubleClick}
-          onTap={handleDoubleClick} // For mobile
+          onDblClick={(e) => {
+            try {
+              e.cancelBubble = true;
+              startEditing();
+            } catch (error) {
+              console.error('Error handling double-click:', error);
+            }
+          }}
+          onTap={() => {
+            try {
+              startEditing();
+            } catch (error) {
+              console.error('Error handling tap:', error);
+            }
+          }}
           perfectDrawEnabled={false}
         />
       </Group>
