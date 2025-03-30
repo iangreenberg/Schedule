@@ -95,6 +95,7 @@
   justify-content: center;
   height: 120px;
   z-index: 20;
+  margin: auto 0; /* Center vertically */
 }
 
 .timeline {
@@ -114,7 +115,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 140px; /* More space between days */
+  min-width: 180px; /* Increased space between days */
   height: 100%;
 }
 

@@ -73,6 +73,9 @@ export function findClosestDateElement(
   let closest = timelineElements[0];
   let minDistance = Infinity;
   
+  // Increased maxSnapDistance to account for larger spacing between days
+  const maxSnapDistance = 180; // Matches our min-width of timeline-day
+  
   timelineElements.forEach(el => {
     const rect = el.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -83,6 +86,12 @@ export function findClosestDateElement(
       closest = el;
     }
   });
+  
+  // If the closest element is too far away, don't snap to it
+  if (minDistance > maxSnapDistance) {
+    console.log('No close element found to snap to');
+    return closest; // We still return the closest element even if far away
+  }
   
   return closest;
 }

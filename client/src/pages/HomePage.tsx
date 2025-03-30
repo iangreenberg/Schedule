@@ -44,11 +44,18 @@ const HomePage: React.FC = () => {
         </div>
       </header>
       
-      {/* Timeline (now centered) */}
-      <Timeline />
-      
-      {/* Whiteboard with more space */}
-      <Whiteboard zoom={zoom} />
+      {/* Main content with Whiteboard and Timeline in the middle */}
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        {/* Whiteboard (fills the space) */}
+        <Whiteboard zoom={zoom} />
+        
+        {/* Timeline (centered in the middle) */}
+        <div className="absolute inset-0 pointer-events-none flex items-center">
+          <div className="w-full pointer-events-auto">
+            <Timeline />
+          </div>
+        </div>
+      </div>
       
       {/* Controls */}
       <Controls

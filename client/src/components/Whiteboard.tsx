@@ -23,8 +23,28 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
   
   // Get timeline days DOM elements for connector positioning
   useEffect(() => {
+    // We need to observe the timeline because it's now dynamically positioned
+    const observer = new MutationObserver(() => {
+      const days = Array.from(document.querySelectorAll('.timeline-day'));
+      setTimelineDays(days as HTMLElement[]);
+    });
+    
+    // Initial load
     const days = Array.from(document.querySelectorAll('.timeline-day'));
     setTimelineDays(days as HTMLElement[]);
+    
+    // Start observing the DOM for changes to timeline
+    const timelineContainer = document.querySelector('.timeline-container');
+    if (timelineContainer) {
+      observer.observe(timelineContainer, { 
+        childList: true, 
+        subtree: true 
+      });
+    }
+    
+    return () => {
+      observer.disconnect();
+    };
   }, []);
   
   // Handle resize
@@ -121,10 +141,21 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
     connectorLayerRef.current.draw();
   }, [objects, timelineDays]);
   
-  // Update connectors when objects change or timeline days are loaded
+  // Update connectors when objects change, timeline days are loaded, or dimensions change
   useEffect(() => {
     updateConnectors();
-  }, [objects, timelineDays, updateConnectors]);
+    
+    // Also update on resize after a short delay
+    const resizeHandler = () => {
+      setTimeout(updateConnectors, 100);
+    };
+    
+    window.addEventListener('resize', resizeHandler);
+    
+    return () => {
+      window.removeEventListener('resize', resizeHandler);
+    };
+  }, [objects, timelineDays, dimensions, updateConnectors]);
   
   // Handle object drag
   const handleDragMove = useCallback((id: string, x: number, y: number) => {

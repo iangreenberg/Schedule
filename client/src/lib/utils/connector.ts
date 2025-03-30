@@ -37,24 +37,49 @@ export function drawConnector(
   
   // Find the timeline's vertical position (center of the timeline container)
   const timelineContainer = document.querySelector('.timeline-container');
-  let timelineY = 60; // Default if we can't find it
+  let timelineY = containerRect.height / 2; // Default to middle of container
   
   if (timelineContainer) {
     const timelineRect = timelineContainer.getBoundingClientRect();
     timelineY = timelineRect.top + timelineRect.height / 2 - containerRect.top;
   }
   
-  // Create beautiful brush-stroke like curved line
-  const cp1X = objectX + (dayTimelineX - objectX) / 3; // First control point x
-  const cp1Y = objectY; // First control point y (same as object)
-  const cp2X = dayTimelineX - (dayTimelineX - objectX) / 3; // Second control point x
-  const cp2Y = timelineY; // Second control point y (same as timeline)
+  // Create beautiful brush-stroke like curved line with improved curve control
+  // Adjust control points based on whether object is above or below the timeline
+  const isAboveTimeline = objectY < timelineY;
+  
+  // Calculate curve's control points dynamically based on object position
+  let cp1X, cp1Y, cp2X, cp2Y;
+  
+  // Calculate distance from object to timeline
+  const xDistance = Math.abs(objectX - dayTimelineX);
+  const yDistance = Math.abs(objectY - timelineY);
+  
+  // Adjust curve amount based on distance - closer items need gentler curves
+  const curveAmount = Math.min(Math.max(yDistance / 4, 20), 100);
+  
+  if (isAboveTimeline) {
+    // Object above timeline - curve flows downward
+    cp1X = objectX + (dayTimelineX - objectX) / 3; 
+    cp1Y = objectY + curveAmount;
+    cp2X = dayTimelineX - (dayTimelineX - objectX) / 3;
+    cp2Y = timelineY - curveAmount / 2;
+  } else {
+    // Object below timeline - curve flows upward
+    cp1X = objectX + (dayTimelineX - objectX) / 3;
+    cp1Y = objectY - curveAmount;
+    cp2X = dayTimelineX - (dayTimelineX - objectX) / 3;
+    cp2Y = timelineY + curveAmount / 2;
+  }
+  
+  // Create more dynamic stroke width based on distance
+  const strokeWidth = Math.max(1.5, Math.min(3, 3 - (xDistance + yDistance) / 500));
   
   // Create the curve path
   const path = new Konva.Path({
     data: `M${objectX},${objectY} C${cp1X},${cp1Y} ${cp2X},${cp2Y} ${dayTimelineX},${timelineY}`,
     stroke: '#DBA159',
-    strokeWidth: 2,
+    strokeWidth,
     lineCap: 'round',
     shadowColor: 'rgba(0,0,0,0.2)',
     shadowBlur: 2,
@@ -74,6 +99,12 @@ export function drawConnector(
   
   layer.add(path);
   layer.add(dot);
+  
+  // Store the date with the whiteboard item
+  const dateStr = closestDay.getAttribute('data-date');
+  if (dateStr) {
+    object.connectedDate = new Date(dateStr);
+  }
   
   return path;
 }
