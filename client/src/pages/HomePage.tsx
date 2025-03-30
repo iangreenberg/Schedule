@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Timeline from '@/components/Timeline';
-import Whiteboard from '@/components/Whiteboard';
 import Controls from '@/components/Controls';
 import { Button } from '@/components/ui/button';
+import BasicWhiteboard from '@/components/BasicWhiteboard';
 
 const HomePage: React.FC = () => {
-  const [zoom, setZoom] = React.useState(100);
+  const [zoom, setZoom] = useState(100);
   
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 10, 200));
@@ -47,7 +47,9 @@ const HomePage: React.FC = () => {
       {/* Main content with Whiteboard and Timeline in the middle */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
         {/* Whiteboard (fills the space) */}
-        <Whiteboard zoom={zoom} />
+        <div className="absolute inset-0">
+          <BasicWhiteboard zoom={zoom / 100} />
+        </div>
         
         {/* Timeline (centered in the middle) */}
         <div className="absolute inset-0 pointer-events-none flex items-center">

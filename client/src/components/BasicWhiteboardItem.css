@@ -1,0 +1,130 @@
+.basic-whiteboard-item {
+  position: absolute;
+  border-radius: 5px;
+  border: 2px solid;
+  box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  padding-bottom: 10px;
+  user-select: none;
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.basic-whiteboard-item:hover {
+  box-shadow: 3px 5px 12px rgba(0, 0, 0, 0.15);
+}
+
+.basic-whiteboard-item.dragging {
+  box-shadow: 5px 8px 15px rgba(0, 0, 0, 0.2);
+  opacity: 0.85;
+  transform: scale(1.02);
+}
+
+.item-accent-bar {
+  height: 5px;
+  width: 100%;
+  opacity: 0.8;
+}
+
+.whiteboard-item-content {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 50px;
+}
+
+.whiteboard-item-text {
+  font-family: 'Caveat', cursive;
+  font-size: 18px;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.whiteboard-item-subtext {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  color: #666;
+  word-break: break-word;
+}
+
+/* Task specific styles */
+.whiteboard-item-content.task {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding-top: 12px;
+}
+
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid;
+  border-radius: 3px;
+  margin-right: 8px;
+  cursor: pointer;
+  position: relative;
+}
+
+.task-checkbox.completed::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 9px;
+  height: 9px;
+  border-bottom: 2px solid white;
+  border-right: 2px solid white;
+  transform: rotate(45deg);
+}
+
+.task-text {
+  margin-top: -2px;
+  flex: 1;
+}
+
+/* Event specific styles */
+.event-header {
+  height: 8px;
+  margin: 0 -12px 8px -12px;
+}
+
+/* Image specific styles */
+.image-placeholder {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  color: #666;
+  border: 1px dashed;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+/* Action buttons */
+.item-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 5px 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.basic-whiteboard-item:hover .item-actions {
+  opacity: 1;
+}
+
+.edit-button {
+  border: none;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Quicksand', sans-serif;
+  transition: all 0.15s ease;
+}
+
+.edit-button:hover {
+  transform: translateY(-1px);
+}
