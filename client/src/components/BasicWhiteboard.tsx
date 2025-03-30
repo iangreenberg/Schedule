@@ -8,13 +8,20 @@ import Connector from './Connector';
 
 interface WhiteboardProps {
   zoom: number;
+  timelineScrollOffset?: number;
+  refresh?: boolean;
 }
 
-const BasicWhiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
+const BasicWhiteboard: React.FC<WhiteboardProps> = ({ 
+  zoom, 
+  timelineScrollOffset = 0,
+  refresh = false
+}) => {
   const [items, setItems] = useState<WhiteboardItem[]>([]);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [addMenuPosition, setAddMenuPosition] = useState({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
+  const prevTimelineScrollOffset = useRef(timelineScrollOffset);
   
   // Load items from the server on mount
   useEffect(() => {
@@ -30,6 +37,70 @@ const BasicWhiteboard: React.FC<WhiteboardProps> = ({ zoom }) => {
     
     fetchItems();
   }, []);
+  
+  // Reposition items when timeline scrolls
+  useEffect(() => {
+    // Skip on first render or when no items
+    if (items.length === 0) return;
+    
+    // Calculate scroll delta from last position
+    const scrollDelta = timelineScrollOffset - prevTimelineScrollOffset.current;
+    prevTimelineScrollOffset.current = timelineScrollOffset;
+    
+    // Skip if no meaningful change
+    if (Math.abs(scrollDelta) < 2) return;
+    
+    // If timeline has scrolled, we need to update all item positions
+    // to maintain their connection to timeline days
+    const repositionItems = async () => {
+      try {
+        // Get all timeline day elements
+        const timelineDays = document.querySelectorAll('.timeline-day');
+        if (!timelineDays.length) return;
+        
+        // Create a map of date strings to horizontal positions
+        const datePositions = new Map<string, number>();
+        timelineDays.forEach(day => {
+          const dateStr = day.getAttribute('data-date');
+          if (dateStr) {
+            const rect = day.getBoundingClientRect();
+            const horizontalCenter = rect.left + rect.width / 2;
+            datePositions.set(dateStr, horizontalCenter);
+          }
+        });
+        
+        // Update each item's horizontal position based on its connected date
+        const updatedItems = items.map(item => {
+          // Format the item's date to match the data-date format
+          const itemDateStr = new Date(item.connectedDate).toISOString().split('T')[0];
+          // Find the horizontal position of the matching day
+          const dayPosition = datePositions.get(itemDateStr);
+          
+          if (dayPosition !== undefined) {
+            // Update the item's horizontal position to match its day
+            return {
+              ...item,
+              position: {
+                // Center the item horizontally on its day
+                x: dayPosition - window.scrollX,
+                y: item.position.y
+              }
+            };
+          }
+          return item;
+        });
+        
+        setItems(updatedItems);
+      } catch (error) {
+        console.error('Error repositioning items:', error);
+      }
+    };
+    
+    // Only run this effect when timeline scrolls or when refresh is triggered
+    if (Math.abs(scrollDelta) > 0 || refresh) {
+      repositionItems();
+    }
+  }, [timelineScrollOffset, refresh, items]);
   
   // Add a new item
   const addItem = async (type: 'text' | 'task' | 'image' | 'event') => {

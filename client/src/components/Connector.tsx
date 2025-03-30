@@ -66,16 +66,45 @@ const Connector: React.FC<ConnectorProps> = ({ item }) => {
     // Calculate on mount and when item position changes
     calculateConnectorPath();
     
-    // Set up window event listeners
+    // Set up event listeners for various scenarios that might require recalculating the connector
     window.addEventListener('resize', calculateConnectorPath);
     window.addEventListener('scroll', calculateConnectorPath);
     
-    // Set up interval to recalculate (items or timeline might move via animation, etc.)
-    const interval = setInterval(calculateConnectorPath, 1000);
+    // Listen for timeline scroll events - recalculate whenever timeline scrolls
+    const timeline = document.getElementById('timeline');
+    const handleTimelineScroll = () => {
+      calculateConnectorPath();
+    };
+    
+    if (timeline) {
+      timeline.addEventListener('scroll', handleTimelineScroll);
+    }
+    
+    // MutationObserver to detect DOM changes (like when items are repositioned)
+    const observer = new MutationObserver(() => {
+      calculateConnectorPath();
+    });
+    
+    const whiteboard = document.querySelector('.basic-whiteboard');
+    if (whiteboard) {
+      observer.observe(whiteboard, { 
+        childList: true, 
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style']
+      });
+    }
+    
+    // Set up interval as a fallback to catch any missed updates
+    const interval = setInterval(calculateConnectorPath, 200);
     
     return () => {
       window.removeEventListener('resize', calculateConnectorPath);
       window.removeEventListener('scroll', calculateConnectorPath);
+      if (timeline) {
+        timeline.removeEventListener('scroll', handleTimelineScroll);
+      }
+      observer.disconnect();
       clearInterval(interval);
     };
   }, [item]);

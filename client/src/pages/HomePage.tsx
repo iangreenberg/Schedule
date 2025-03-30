@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Timeline from '@/components/Timeline';
 import Controls from '@/components/Controls';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,18 @@ import BasicWhiteboard from '@/components/BasicWhiteboard';
 
 const HomePage: React.FC = () => {
   const [zoom, setZoom] = useState(100);
+  const [timelineScrollOffset, setTimelineScrollOffset] = useState(0);
+  const [refreshWhiteboard, setRefreshWhiteboard] = useState(false);
+  const lastScrollAmount = useRef(0);
+  
+  // Force refresh of whiteboard items when timeline scrolls
+  useEffect(() => {
+    if (refreshWhiteboard) {
+      // Reset the flag after a short delay to allow changes to apply
+      const timer = setTimeout(() => setRefreshWhiteboard(false), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [refreshWhiteboard]);
   
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 10, 200));
@@ -13,6 +25,16 @@ const HomePage: React.FC = () => {
   
   const handleZoomOut = () => {
     setZoom(prev => Math.max(prev - 10, 50));
+  };
+  
+  // Handle timeline scrolling to update whiteboard
+  const handleTimelineScroll = (direction: 'left' | 'right', scrollAmount: number) => {
+    // Only trigger updates when scroll amount has changed significantly
+    if (Math.abs(scrollAmount - lastScrollAmount.current) > 2) {
+      lastScrollAmount.current = scrollAmount;
+      setTimelineScrollOffset(scrollAmount);
+      setRefreshWhiteboard(true);
+    }
   };
   
   return (
@@ -48,13 +70,20 @@ const HomePage: React.FC = () => {
       <div className="flex-1 flex flex-col relative overflow-hidden">
         {/* Whiteboard (fills the space) */}
         <div className="absolute inset-0">
-          <BasicWhiteboard zoom={zoom / 100} />
+          <BasicWhiteboard 
+            zoom={zoom / 100} 
+            timelineScrollOffset={timelineScrollOffset}
+            refresh={refreshWhiteboard}
+          />
         </div>
         
         {/* Timeline (centered in the middle) */}
         <div className="absolute inset-0 pointer-events-none flex items-center">
           <div className="w-full pointer-events-auto">
-            <Timeline />
+            <Timeline 
+              onScroll={handleTimelineScroll}
+              scrollOffset={timelineScrollOffset}
+            />
           </div>
         </div>
       </div>

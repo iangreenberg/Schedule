@@ -2,13 +2,17 @@ import React, { useRef, useEffect, useState } from 'react';
 import { addDays, format, isToday } from 'date-fns';
 
 interface TimelineProps {
-  onScroll?: (direction: 'left' | 'right') => void;
+  onScroll?: (direction: 'left' | 'right', scrollAmount: number) => void;
+  scrollOffset?: number;
 }
 
-const Timeline: React.FC<TimelineProps> = ({ onScroll }) => {
+const Timeline: React.FC<TimelineProps> = ({ onScroll, scrollOffset = 0 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [timelineDays, setTimelineDays] = useState<Date[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
   
   // Generate days for the timeline
   useEffect(() => {
@@ -22,6 +26,13 @@ const Timeline: React.FC<TimelineProps> = ({ onScroll }) => {
     
     setTimelineDays(days);
   }, [startDate]);
+  
+  // Set initial scroll position based on scrollOffset
+  useEffect(() => {
+    if (timelineRef.current && scrollOffset !== 0) {
+      timelineRef.current.scrollLeft = scrollOffset;
+    }
+  }, [scrollOffset]);
   
   // Adjust timeline when it reaches the edges
   useEffect(() => {
@@ -47,6 +58,11 @@ const Timeline: React.FC<TimelineProps> = ({ onScroll }) => {
           )
         ]);
       }
+      
+      // Notify parent of scroll change so whiteboard items can reposition
+      if (onScroll) {
+        onScroll('left', scrollLeft);
+      }
     };
     
     const timelineElement = timelineRef.current;
@@ -59,7 +75,57 @@ const Timeline: React.FC<TimelineProps> = ({ onScroll }) => {
         timelineElement.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [timelineDays]);
+  }, [timelineDays, onScroll]);
+  
+  // Custom mouse drag for smoother scrolling
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!timelineRef.current) return;
+    
+    setIsDragging(true);
+    setStartX(e.pageX - timelineRef.current.offsetLeft);
+    setScrollLeft(timelineRef.current.scrollLeft);
+    
+    // Change cursor style
+    document.body.style.cursor = 'grabbing';
+  };
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    // Reset cursor style
+    document.body.style.cursor = '';
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !timelineRef.current) return;
+    
+    e.preventDefault();
+    const x = e.pageX - timelineRef.current.offsetLeft;
+    // Use a slower scrolling speed for better control
+    const scrollSpeed = 1.5; // Lower = slower
+    const walk = (x - startX) * scrollSpeed;
+    timelineRef.current.scrollLeft = scrollLeft - walk;
+    
+    // Notify parent of scroll change
+    if (onScroll) {
+      onScroll('left', timelineRef.current.scrollLeft);
+    }
+  };
+  
+  // Handle wheel scroll with reduced acceleration
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!timelineRef.current) return;
+    
+    e.preventDefault();
+    
+    // Reduce the scroll speed for mousepad scrolling
+    const scrollFactor = 0.3; // Lower = slower
+    timelineRef.current.scrollLeft += e.deltaX * scrollFactor;
+    
+    // Notify parent of scroll change
+    if (onScroll) {
+      onScroll('left', timelineRef.current.scrollLeft);
+    }
+  };
   
   return (
     <div className="timeline-container">
@@ -71,7 +137,15 @@ const Timeline: React.FC<TimelineProps> = ({ onScroll }) => {
         id="timeline" 
         ref={timelineRef}
         className="flex w-full overflow-x-auto scrollbar-hide" 
-        style={{ scrollBehavior: 'smooth' }}
+        style={{ 
+          scrollBehavior: 'auto', // Changed from 'smooth' for better manual control
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onWheel={handleWheel}
       >
         {timelineDays.map((day, index) => (
           <div 
