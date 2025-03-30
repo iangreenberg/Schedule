@@ -47,17 +47,28 @@ const BasicWhiteboardItem: React.FC<WhiteboardItemProps> = ({ item, onMove, onUp
   // Handle Dragging
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (itemRef.current) {
+      // Prevent the mouse down event from bubbling to the canvas
+      e.stopPropagation();
+      
+      // Calculate offset from mouse position to the top-left corner of the item
       const rect = itemRef.current.getBoundingClientRect();
       setDragOffset({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top
       });
       setIsDragging(true);
+      
+      // Change cursor style
+      document.body.style.cursor = 'grabbing';
     }
   };
   
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (itemRef.current && e.touches[0]) {
+      // Prevent the touch event from bubbling
+      e.stopPropagation();
+      
+      // Calculate offset from touch position to the top-left corner of the item
       const rect = itemRef.current.getBoundingClientRect();
       setDragOffset({
         x: e.touches[0].clientX - rect.left,
@@ -89,6 +100,9 @@ const BasicWhiteboardItem: React.FC<WhiteboardItemProps> = ({ item, onMove, onUp
     const handleMouseUp = () => {
       if (isDragging) {
         setIsDragging(false);
+        // Reset cursor style
+        document.body.style.cursor = '';
+        // Update position in parent component and database
         onMove(item.id, position.x, position.y);
       }
     };
@@ -96,6 +110,7 @@ const BasicWhiteboardItem: React.FC<WhiteboardItemProps> = ({ item, onMove, onUp
     const handleTouchEnd = () => {
       if (isDragging) {
         setIsDragging(false);
+        // Update position in parent component and database
         onMove(item.id, position.x, position.y);
       }
     };
