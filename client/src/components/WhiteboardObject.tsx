@@ -58,7 +58,12 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
   }, [object.content]);
   
   // Handle double click to edit
-  const handleDoubleClick = () => {
+  const handleDoubleClick = (e: Konva.KonvaEventObject<MouseEvent> | Konva.KonvaEventObject<TouchEvent>) => {
+    // Stop event propagation to prevent conflicts
+    e.cancelBubble = true;
+    
+    console.log('Double-click or tap detected on object:', object.id);
+    
     if (object.type === 'text') {
       setEditingField('text');
     } else if (object.type === 'task') {
@@ -68,12 +73,20 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
     } else if (object.type === 'image') {
       setEditingField('caption');
     }
+    
     setIsEditing(true);
   };
   
   // Handle completing edit
   const completeEdit = () => {
-    if (!onContentChange) return;
+    console.log('Completing edit for object ID:', object.id);
+    console.log('onContentChange function exists:', Boolean(onContentChange));
+    
+    if (!onContentChange) {
+      console.error('onContentChange is not defined!');
+      setIsEditing(false);
+      return;
+    }
     
     let newContent;
     switch (object.type) {
@@ -107,7 +120,13 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
         newContent = object.content;
     }
     
-    onContentChange(object.id, newContent);
+    console.log('New content object:', newContent);
+    try {
+      onContentChange(object.id, newContent);
+      console.log('Content change function called successfully');
+    } catch (error) {
+      console.error('Error calling onContentChange:', error);
+    }
     setIsEditing(false);
   };
   
@@ -417,6 +436,12 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
           width={width}
           height={height}
           opacity={0}
+          onClick={(e) => {
+            // On mobile, a tap will trigger this
+            if (e.evt.type === 'touchend') {
+              handleDoubleClick(e as any);
+            }
+          }}
           onDblClick={handleDoubleClick}
           onTap={handleDoubleClick} // For mobile
           perfectDrawEnabled={false}
