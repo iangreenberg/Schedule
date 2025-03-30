@@ -1,5 +1,5 @@
 import React from 'react';
-import { Group, Rect, Text } from 'react-konva';
+import { Group, Rect, Text, Line } from 'react-konva';
 import { WhiteboardItem } from '@shared/schema';
 import Konva from 'konva';
 
@@ -37,7 +37,41 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
     onDragEnd(e.target.x(), e.target.y());
   };
   
+  // Get color based on object type - Japanese-inspired color palette
+  const getObjectColor = () => {
+    switch(object.type) {
+      case 'text':
+        return '#A02C2C'; // Akane (Deep Red)
+      case 'task':
+        return '#DC6238'; // Persimmon 
+      case 'event':
+        return '#2A4B7C'; // Kon (Indigo Blue)
+      case 'image':
+        return '#5D3A1A'; // Kogecha (Dark Brown)
+      default:
+        return '#A02C2C'; // Default to Akane
+    }
+  };
+  
+  // Get background color with lighter tint
+  const getBackgroundColor = () => {
+    switch(object.type) {
+      case 'text':
+        return '#FFF8F8'; // Light red tint
+      case 'task':
+        return '#FFF9F1'; // Light orange tint
+      case 'event':
+        return '#F5F8FD'; // Light blue tint
+      case 'image':
+        return '#FAF7F5'; // Light brown tint
+      default:
+        return '#FFF8F8';
+    }
+  };
+  
   const getObjectContent = () => {
+    const color = getObjectColor();
+    
     switch (object.type) {
       case 'text':
         return (
@@ -45,9 +79,9 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
             <Text
               ref={textRef}
               text={object.content.text}
-              fontSize={18}
+              fontSize={20}
               fontFamily="Caveat"
-              fill="#333333" 
+              fill={color} 
               width={width - 40}
               padding={10}
               align="center"
@@ -55,12 +89,12 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
             {object.content.subtext && (
               <Text
                 text={object.content.subtext}
-                fontSize={12}
+                fontSize={13}
                 fontFamily="Quicksand"
                 fill="#666666"
                 width={width - 40}
                 padding={10}
-                y={25}
+                y={30}
                 align="center"
               />
             )}
@@ -74,20 +108,20 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
               y={15}
               width={16}
               height={16}
-              stroke="#333333"
-              strokeWidth={1}
-              fill={object.content.completed ? "#4A6FA5" : "white"}
-              cornerRadius={2}
+              stroke={color}
+              strokeWidth={1.5}
+              fill={object.content.completed ? color : "white"}
+              cornerRadius={3}
             />
             <Text
               ref={textRef}
               text={object.content.text}
               fontSize={18}
               fontFamily="Caveat"
-              fill="#333333"
+              fill={color}
               width={width - 60}
               padding={10}
-              x={30}
+              x={32}
               align="left"
             />
           </>
@@ -95,14 +129,25 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
       case 'event':
         return (
           <>
+            {/* Event icon circle */}
+            <Rect
+              x={10}
+              y={10}
+              width={width - 20}
+              height={8}
+              fill={color}
+              opacity={0.8}
+              cornerRadius={4}
+            />
             <Text
               ref={textRef}
               text={object.content.title}
-              fontSize={18}
+              fontSize={20}
               fontFamily="Caveat"
-              fill="#333333" 
+              fill={color} 
               width={width - 40}
               padding={10}
+              y={15}
               align="center"
             />
             <Text
@@ -112,7 +157,7 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
               fill="#666666"
               width={width - 40}
               padding={10}
-              y={25}
+              y={40}
               align="center"
             />
           </>
@@ -125,7 +170,7 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
               y={10}
               width={width - 20}
               height={height - 40}
-              stroke="#CCCCCC"
+              stroke={color}
               strokeWidth={1}
               dash={[5, 2]}
               fill="#F9F9F9"
@@ -134,7 +179,7 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
               text="+ Add Image"
               fontSize={14}
               fontFamily="Quicksand"
-              fill="#999999"
+              fill="#666666"
               width={width - 20}
               padding={10}
               y={height / 2 - 20}
@@ -160,6 +205,39 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
     }
   };
   
+  // Create Japanese-inspired brushstroke for border
+  const color = getObjectColor();
+  const bgColor = getBackgroundColor();
+  
+  // Function to create brush strokes with random variations
+  const createBrushStroke = (startX: number, startY: number, endX: number, endY: number, width: number) => {
+    const points: number[] = [];
+    const segments = 8;
+    const segmentLength = 1 / segments;
+    
+    for (let i = 0; i <= segments; i++) {
+      const t = i * segmentLength;
+      const x = startX + (endX - startX) * t;
+      const y = startY + (endY - startY) * t;
+      
+      // Add random variation for artistic brush stroke effect
+      const variation = (Math.random() * 2 - 1) * (width / 10);
+      
+      // Perpendicular direction
+      const perpX = -(endY - startY);
+      const perpY = endX - startX;
+      
+      // Normalize
+      const length = Math.sqrt(perpX * perpX + perpY * perpY);
+      const normPerpX = perpX / length;
+      const normPerpY = perpY / length;
+      
+      points.push(x + normPerpX * variation, y + normPerpY * variation);
+    }
+    
+    return points;
+  };
+  
   return (
     <Group
       x={object.position.x}
@@ -168,27 +246,63 @@ const WhiteboardObject: React.FC<WhiteboardObjectProps> = ({
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
-      {/* Background with brush stroke effect */}
+      {/* Shadow */}
+      <Rect
+        x={4}
+        y={4}
+        width={width}
+        height={height}
+        fill="rgba(0,0,0,0.08)"
+        cornerRadius={6}
+      />
+      
+      {/* Brushstroke border elements - bottom */}
+      <Line
+        points={createBrushStroke(-2, height + 2, width + 2, height + 2, 8)}
+        stroke={color}
+        strokeWidth={4}
+        lineCap="round"
+        lineJoin="round"
+        opacity={0.8}
+      />
+      
+      {/* Background with texture */}
       <Rect
         width={width}
         height={height}
-        fill="white"
+        fill={bgColor}
         cornerRadius={4}
-        shadowColor="rgba(0,0,0,0.2)"
-        shadowBlur={3}
-        shadowOffset={{ x: 1, y: 2 }}
+        perfectDrawEnabled={false}
       />
       
-      {/* Brush border effect */}
-      <Rect
-        x={-3}
-        y={-3}
-        width={width + 6}
-        height={height + 6}
-        fill="#4A6FA5"
-        cornerRadius={8}
+      {/* Brushstroke border elements - top */}
+      <Line
+        points={createBrushStroke(-2, -2, width + 2, -2, 8)}
+        stroke={color}
+        strokeWidth={4}
+        lineCap="round"
+        lineJoin="round"
         opacity={0.8}
-        rotation={-0.5}
+      />
+      
+      {/* Brushstroke border elements - left */}
+      <Line
+        points={createBrushStroke(-2, -2, -2, height + 2, 8)}
+        stroke={color}
+        strokeWidth={4}
+        lineCap="round"
+        lineJoin="round"
+        opacity={0.8}
+      />
+      
+      {/* Brushstroke border elements - right */}
+      <Line
+        points={createBrushStroke(width + 2, -2, width + 2, height + 2, 8)}
+        stroke={color}
+        strokeWidth={4}
+        lineCap="round"
+        lineJoin="round"
+        opacity={0.8}
       />
       
       {/* Content */}

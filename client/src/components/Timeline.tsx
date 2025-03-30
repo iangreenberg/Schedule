@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { addDays, format } from 'date-fns';
+import React, { useRef, useEffect, useState } from 'react';
+import { addDays, format, isToday } from 'date-fns';
 
 interface TimelineProps {
   onScroll?: (direction: 'left' | 'right') => void;
@@ -36,7 +36,7 @@ const Timeline: React.FC<TimelineProps> = ({ onScroll }) => {
         setStartDate(prev => addDays(prev, -5));
         // Keep the scroll position
         if (timelineRef.current) {
-          timelineRef.current.scrollLeft += 550; // Approximate width of 5 days
+          timelineRef.current.scrollLeft += 700; // Adjusted width for more space between days
         }
       } else if (scrollWidth - (scrollLeft + clientWidth) < 200) {
         // We're near the right edge, add more days to the end
@@ -62,17 +62,29 @@ const Timeline: React.FC<TimelineProps> = ({ onScroll }) => {
   }, [timelineDays]);
   
   return (
-    <div className="bg-white border-b border-gray-200 overflow-hidden z-10">
+    <div className="timeline-container">
+      {/* Timeline ruler line */}
+      <div className="timeline"></div>
+      
+      {/* Timeline days */}
       <div 
         id="timeline" 
         ref={timelineRef}
-        className="flex py-4 px-6 overflow-x-auto scrollbar-hide" 
+        className="flex w-full overflow-x-auto scrollbar-hide" 
         style={{ scrollBehavior: 'smooth' }}
       >
         {timelineDays.map((day, index) => (
-          <div key={index} className="timeline-day" data-date={format(day, 'yyyy-MM-dd')}>
-            <span className="font-handwritten text-2xl">{format(day, 'EEE')}</span>
-            <span className="font-body text-sm text-gray-600">{format(day, 'MMM d')}</span>
+          <div 
+            key={index} 
+            className={`timeline-day ${isToday(day) ? 'today' : ''}`} 
+            data-date={format(day, 'yyyy-MM-dd')}
+          >
+            <div className="flex flex-col items-center">
+              <span className="font-handwritten text-2xl mb-2">{format(day, 'EEE')}</span>
+              <div className="timeline-date">
+                <span className="font-body text-sm">{format(day, 'MMM d')}</span>
+              </div>
+            </div>
           </div>
         ))}
       </div>
