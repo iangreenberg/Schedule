@@ -44,91 +44,110 @@ const BasicWhiteboardItem: React.FC<WhiteboardItemProps> = ({ item, onMove, onUp
     }
   }, [isEditing, item]);
   
-  // Handle Dragging
+  // Handle Dragging - complete rewrite with different strategy
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (itemRef.current) {
-      // Prevent the mouse down event from bubbling to the canvas
-      e.stopPropagation();
+    // Prevent bubbling to avoid unwanted side effects
+    e.stopPropagation();
+    
+    // Store initial mouse and element positions for reference
+    const initialMouseX = e.clientX;
+    const initialMouseY = e.clientY;
+    const startX = position.x;
+    const startY = position.y;
+    
+    // Flag that we've started dragging
+    setIsDragging(true);
+    
+    // Change cursor style
+    document.body.style.cursor = 'grabbing';
+    
+    // Define the move handler within this closure to maintain the initial positions
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      // Calculate how far the mouse has moved from its starting position
+      const deltaX = moveEvent.clientX - initialMouseX;
+      const deltaY = moveEvent.clientY - initialMouseY;
       
-      // Calculate offset from mouse position to the top-left corner of the item
-      const rect = itemRef.current.getBoundingClientRect();
-      setDragOffset({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      });
-      setIsDragging(true);
+      // Apply that delta to the original position of the element
+      const newX = startX + deltaX;
+      const newY = startY + deltaY;
       
-      // Change cursor style
-      document.body.style.cursor = 'grabbing';
-    }
-  };
-  
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (itemRef.current && e.touches[0]) {
-      // Prevent the touch event from bubbling
-      e.stopPropagation();
-      
-      // Calculate offset from touch position to the top-left corner of the item
-      const rect = itemRef.current.getBoundingClientRect();
-      setDragOffset({
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top
-      });
-      setIsDragging(true);
-    }
-  };
-  
-  // Global mouse/touch move and up handlers
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging && itemRef.current) {
-        const x = e.clientX - dragOffset.x;
-        const y = e.clientY - dragOffset.y;
-        setPosition({ x, y });
-      }
+      // Update position state
+      setPosition({ x: newX, y: newY });
     };
     
-    const handleTouchMove = (e: TouchEvent) => {
-      if (isDragging && itemRef.current && e.touches[0]) {
-        const x = e.touches[0].clientX - dragOffset.x;
-        const y = e.touches[0].clientY - dragOffset.y;
-        setPosition({ x, y });
-        e.preventDefault(); // Prevent scrolling while dragging
-      }
-    };
-    
+    // Define the mouse up handler
     const handleMouseUp = () => {
-      if (isDragging) {
-        setIsDragging(false);
-        // Reset cursor style
-        document.body.style.cursor = '';
-        // Update position in parent component and database
-        onMove(item.id, position.x, position.y);
-      }
+      // Stop listening for mouse events
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      
+      // Reset cursor
+      document.body.style.cursor = '';
+      
+      // Reset dragging state
+      setIsDragging(false);
+      
+      // Inform parent of final position
+      onMove(item.id, position.x, position.y);
     };
     
-    const handleTouchEnd = () => {
-      if (isDragging) {
+    // Add event listeners for mouse move and up
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+  
+  // Touch version of dragging functionality
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      // Prevent default behavior and bubbling
+      e.stopPropagation();
+      
+      // Store initial touch and element positions for reference
+      const initialTouchX = e.touches[0].clientX;
+      const initialTouchY = e.touches[0].clientY;
+      const startX = position.x;
+      const startY = position.y;
+      
+      // Flag that we've started dragging
+      setIsDragging(true);
+      
+      // Define the move handler within this closure to maintain the initial positions
+      const handleTouchMove = (moveEvent: TouchEvent) => {
+        if (moveEvent.touches.length === 1) {
+          // Prevent scrolling
+          moveEvent.preventDefault();
+          
+          // Calculate how far the touch has moved from its starting position
+          const deltaX = moveEvent.touches[0].clientX - initialTouchX;
+          const deltaY = moveEvent.touches[0].clientY - initialTouchY;
+          
+          // Apply that delta to the original position of the element
+          const newX = startX + deltaX;
+          const newY = startY + deltaY;
+          
+          // Update position state
+          setPosition({ x: newX, y: newY });
+        }
+      };
+      
+      // Define the touch end handler
+      const handleTouchEnd = () => {
+        // Stop listening for touch events
+        document.removeEventListener('touchmove', handleTouchMove, { passive: false });
+        document.removeEventListener('touchend', handleTouchEnd);
+        
+        // Reset dragging state
         setIsDragging(false);
-        // Update position in parent component and database
+        
+        // Inform parent of final position
         onMove(item.id, position.x, position.y);
-      }
-    };
-    
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      };
+      
+      // Add event listeners for touch move and end
       document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleTouchEnd);
     }
-    
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [isDragging, dragOffset, position, item.id, onMove]);
+  };
   
   // Open edit dialog
   const handleEdit = () => {
